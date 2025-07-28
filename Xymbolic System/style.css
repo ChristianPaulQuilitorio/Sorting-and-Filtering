@@ -1,0 +1,36 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f0f2f5;
+    margin: 0;
+}
+
+.container { display: flex; height: 90vh; }
+.sidebar { width: 350px; background: #f5f5f5; overflow-y: auto; border-right: 1px solid #ddd; }
+.company-card { background: #fff; margin: 16px; padding: 16px; border-radius: 8px; box-shadow: 0 1px 4px #0001; cursor: pointer; transition: box-shadow .2s; }
+.company-card.selected, .company-card:hover { box-shadow: 0 2px 8px #0002; background: #e9f5ff; }
+.company-card .location { color: #888; font-size: 13px; margin-bottom: 4px; }
+.company-card .name { font-size: 20px; font-weight: 600; }
+.company-card .contact { font-size: 13px; color: #555; margin-top: 4px; }
+
+.main-panel { flex: 1; padding: 32px 40px; overflow-y: auto; background: #fff; border-radius: 10px; margin: 24px 0 24px 24px; box-shadow: 0 2px 12px #0001; min-width: 350px; min-height: 400px; }
+.main-header { display: flex; align-items: flex-start; justify-content: space-between; }
+.main-header .info { max-width: 70%; }
+.main-header .name { font-size: 2rem; font-weight: 700; }
+.main-header .contact { color: #555; font-size: 15px; margin: 8px 0; }
+.main-header .desc { color: #666; font-size: 15px; margin-top: 12px; }
+.main-header .icons { font-size: 2rem; display: flex; gap: 18px; }
+.main-header .icons a { color: #333; text-decoration: none; }
+.products-section { margin-top: 32px; }
+.products-section h3 { font-size: 1.2rem; margin-bottom: 12px; }
+.product-list { list-style: none; padding: 0; }
+.product-list li { background: #f8f8f8; border-radius: 6px; margin-bottom: 10px; padding: 10px 16px; font-size: 16px; }
+
+.searchbar { display: flex; align-items: center; background: #fff; border-bottom: 1px solid #ddd; padding: 12px 24px; }
+.searchbar input { flex: 1; border: none; outline: none; font-size: 1.1rem; background: none; }
+.searchbar .icon-btn { background: none; border: none; font-size: 1.3rem; margin-left: 12px; cursor: pointer; color: #555; }
+
+@media (max-width: 900px) {
+    .container { flex-direction: column; }
+    .sidebar { width: 100%; height: 200px; border-right: none; border-bottom: 1px solid #ddd; }
+    .main-panel { padding: 16px; margin: 0; }
+}
