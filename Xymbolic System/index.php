@@ -1,58 +1,15 @@
 <?php include 'db.php'; ?>
 <!DOCTYPE html>
 <html>
-    <meta charset="UTF-8">
 <head>
+    <meta charset="UTF-8">
     <title>Company Directory</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <style>
-        .container { display: flex; height: 90vh; }
-        .sidebar { width: 350px; background: #f5f5f5; overflow-y: auto; border-right: 1px solid #ddd; }
-        .company-card { background: #fff; margin: 16px; padding: 16px; border-radius: 8px; box-shadow: 0 1px 4px #0001; cursor: pointer; transition: box-shadow .2s; position:relative; }
-        .company-card.selected, .company-card:hover { box-shadow: 0 2px 8px #0002; background: #e9f5ff; }
-        .company-card .location { color: #888; font-size: 13px; margin-bottom: 4px; }
-        .company-card .name { font-size: 20px; font-weight: 600; }
-        .company-card .contact { font-size: 13px, color: #555; margin-top: 4px; }
-        .main-panel { flex: 1; padding: 32px 40px; overflow-y: auto; }
-        .main-header { display: flex; align-items: flex-start; justify-content: space-between; }
-        .main-header .info { max-width: 70%; }
-        .main-header .name { font-size: 2rem; font-weight: 700; }
-        .main-header .contact { color: #555; font-size: 15px; margin: 8px 0; }
-        .main-header .desc { color: #666; font-size: 15px; margin-top: 12px; }
-        .main-header .icons { font-size: 2rem; display: flex; gap: 18px; }
-        .main-header .icons a { color: #333; text-decoration: none; }
-        .products-section { margin-top: 32px; }
-        .products-section h3 { font-size: 1.2rem; margin-bottom: 12px; }
-        .product-list { list-style: none; padding: 0; }
-        .product-list li { background: #f8f8f8; border-radius: 6px; margin-bottom: 10px; padding: 10px 16px; font-size: 16px; }
-        .searchbar { display: flex; align-items: center; background: #fff; border-bottom: 1px solid #ddd; padding: 12px 24px; }
-        .searchbar input { flex: 1; border: none; outline: none; font-size: 1.1rem; background: none; }
-        .searchbar .icon-btn { background: none; border: none; font-size: 1.3rem; margin-left: 12px; cursor: pointer; color: #555; }
-        #add-company-btn { display:none;background:#228b22;color:#fff;font-weight:700;font-size:1.3em;padding:0 32px;height:44px;border:none;border-radius:10px;margin-left:12px;cursor:pointer; }
-        .editable-field {
-            border: none;
-            background: transparent;
-            outline: none;
-            font: inherit;
-            color: inherit;
-            width: 100%;
-            transition: border-bottom 0.2s;
-            border-bottom: 1.5px solid transparent;
-            cursor: pointer;
-        }
-        .editable-field[contenteditable="true"]:hover,
-        .editable-field.edit-hover {
-            border-bottom: 1.5px solid #228b22;
-            cursor: text;
-        }
-        .editable-field:focus {
-            border-bottom: 1.5px solid #228b22;
-            background: #e9f5ff;
-            outline: none;
-        }
-        @media (max-width: 900px) { .container { flex-direction: column; } .sidebar { width: 100%; height: 200px; border-right: none; border-bottom: 1px solid #ddd; } .main-panel { padding: 16px; } }
-    </style>
+    <script>
+        var COMPANY_ID = <?= intval($show_id) ?>;
+    </script>
+    <script src="main.js" defer></script>
 </head>
 <body>
 <?php if (isset($_GET['error'])): ?>
@@ -65,7 +22,7 @@ window.onload = function() {
 <div class="searchbar">
     <i class="fa fa-search"></i>
     <form id="search-form" method="GET" style="flex:1;display:flex;align-items:center;gap:8px;margin:0;">
-        <input type="text" id="search-input" name="search" placeholder="Search company name/email/sector" value="<?= htmlspecialchars($_GET['search'] ?? '') ?>" autocomplete="off">
+        <input type="text" id="search-input" name="search" placeholder="Search for Company/Products" value="<?= htmlspecialchars($_GET['search'] ?? '') ?>" autocomplete="off">
     </form>
     <button class="icon-btn"><i class="fa fa-sliders-h"></i></button>
     <button id="add-company-btn" style="display:none;background:#228b22;color:#fff;font-weight:700;font-size:1.3em;padding:0 32px;height:44px;border:none;border-radius:10px;margin-left:12px;cursor:pointer;">ADD</button>
@@ -93,7 +50,10 @@ window.onload = function() {
             $where .= " AND sector = '$sector'";
         }
         $where .= " AND status != 'archived'";
-        $companies = $conn->query("SELECT * FROM companies $where ORDER BY id DESC");
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $limit = 10;
+        $offset = ($page - 1) * $limit;
+        $companies = $conn->query("SELECT * FROM companies $where ORDER BY id DESC LIMIT $limit OFFSET $offset");
         $selected_id = $_GET['company_id'] ?? null;
         $first_id = null;
         while($c = $companies->fetch_assoc()):
@@ -106,10 +66,15 @@ window.onload = function() {
                 <div><i class="fa fa-envelope"></i> <?= htmlspecialchars($c['email']) ?></div>
                 <div><i class="fa fa-phone"></i> <?= htmlspecialchars($c['contact_number']) ?></div>
             </div>
-            <form action="process.php" method="POST" style="position:absolute;right:10px;top:10px;display:inline;">
-                <input type="hidden" name="id" value="<?= $c['id'] ?>">
-                <button type="submit" name="delete" class="delete-company-btn" style="display:none;background:none;border:none;color:#d00;font-size:1.3em;cursor:pointer;" onclick="return confirm('Delete this company?')"><i class="fa fa-trash"></i></button>
-            </form>
+            <!-- Move the delete button to the bottom -->
+            <div style="width:100%;display:flex;justify-content:flex-end;align-items:center;margin-top:5px;">
+                <form action="process.php" method="POST" style="display:inline;">
+                    <input type="hidden" name="id" value="<?= $c['id'] ?>">
+                    <button type="submit" name="delete" class="delete-company-btn" style="display:none;background:none;border:none;color:#d00;font-size:1.3em;cursor:pointer;" onclick="return confirm('Delete this company?')">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </form>
+            </div>
         </div>
         <?php endwhile; ?>
     </div>
@@ -122,12 +87,24 @@ window.onload = function() {
         <div class="main-header">
             <div class="info">
                 <div class="name">
-                    <span class="editable-field" data-field="name" contenteditable="false"><?= htmlspecialchars($company['name']) ?></span>
+                    <span class="editable-field" data-field="name" data-company-id="<?= $company['id'] ?>" contenteditable="false" data-original="<?= htmlspecialchars($company['name']) ?>"><?= htmlspecialchars($company['name']) ?></span>
                 </div>
                 <div class="contact">
                     <span class="editable-field" data-field="email" contenteditable="false"><i class="fa fa-envelope"></i> <?= htmlspecialchars($company['email']) ?></span> &nbsp;
                     <span class="editable-field" data-field="contact_number" contenteditable="false"><i class="fa fa-phone"></i> <?= htmlspecialchars($company['contact_number']) ?></span>
-                    <br><span class="editable-field" data-field="location" contenteditable="false"><i class="fa fa-map-marker-alt"></i> <?= htmlspecialchars($company['location']) ?></span>
+                    <br>
+                    <span class="editable-field" data-field="location" contenteditable="false" data-original="<?= htmlspecialchars($company['location']) ?>">
+                        <i class="fa fa-map-marker-alt"></i> <?= htmlspecialchars($company['location']) ?>
+                    </span>
+                </div>
+                <div style="margin:8px 0 0 0;display:flex;align-items:center;gap:4px;">
+                    <?php $review = (int)($company['review'] ?? 0); ?>
+                    <span id="company-star-rating" style="display:flex;align-items:center;gap:2px;cursor:pointer;">
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <i class="fa fa-star company-star" data-value="<?= $i ?>" style="color:<?= $i <= $review ? '#f5b301' : '#ccc' ?>;font-size:1.4em;transition:color 0.2s;"></i>
+                        <?php endfor; ?>
+                    </span>
+                    <span style="font-size:1em;color:#888;margin-left:8px;">Rating</span>
                 </div>
                 <div class="desc">
                     <span class="editable-field" data-field="description" contenteditable="false"> <?= nl2br(htmlspecialchars($company['description'])) ?> </span>
@@ -173,10 +150,10 @@ window.onload = function() {
   <div style="background:#ddd;padding:24px 24px 16px 24px;border-radius:16px;min-width:340px;max-width:95vw;box-shadow:0 4px 32px #0003;display:flex;flex-direction:column;gap:12px;position:relative;">
     <form id="add-company-form" action="process.php" method="POST" autocomplete="off" style="display:flex;flex-direction:column;gap:10px;">
       <input type="text" name="name" placeholder="Company Name" required style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ccc;font-size:1.1em;background:#fff7f7;">
-      <textarea name="description" placeholder="Description" rows="2" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ccc;font-size:1.1em;background:#fff7f7;"></textarea>
+      <input type="text" name="description" placeholder="Description" required style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ccc;font-size:1.1em;background:#fff7f7;">
       <input type="text" name="location" placeholder="Location (e.g. City, Address, or Google Maps link)" required style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ccc;font-size:1.1em;background:#fff7f7;">
       <div style="font-size:12px;color:#666;margin-bottom:2px;margin-top:-6px;">Tip: Enter a city, address, or paste a Google Maps link for best results.</div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;align-items:flex-end;">
         <div style="flex:1;display:flex;align-items:center;background:#fff7f7;border-radius:8px;border:1px solid #ccc;">
           <span style="margin:0 8px 0 8px;"><i class="fa fa-envelope"></i></span>
           <input type="email" name="email" placeholder="Email" required style="border:none;outline:none;background:transparent;font-size:1em;width:100%;padding:10px 0;">
@@ -190,6 +167,17 @@ window.onload = function() {
         <span style="margin:0 8px 0 8px;"><i class="fa fa-link"></i></span>
         <input type="url" name="url" placeholder="Website URL" style="border:none;outline:none;background:transparent;font-size:1em;width:100%;padding:10px 0;">
       </div>
+      <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:8px;">
+        <div id="star-rating" style="display:flex;gap:2px;align-items:center;">
+          <input type="hidden" name="review" id="review-rating" value="0">
+          <span class="star" data-value="1" style="font-size:1.7em;cursor:pointer;color:#ccc;"><i class="fa fa-star"></i></span>
+          <span class="star" data-value="2" style="font-size:1.7em;cursor:pointer;color:#ccc;"><i class="fa fa-star"></i></span>
+          <span class="star" data-value="3" style="font-size:1.7em;cursor:pointer;color:#ccc;"><i class="fa fa-star"></i></span>
+          <span class="star" data-value="4" style="font-size:1.7em;cursor:pointer;color:#ccc;"><i class="fa fa-star"></i></span>
+          <span class="star" data-value="5" style="font-size:1.7em;cursor:pointer;color:#ccc;"><i class="fa fa-star"></i></span>
+          <span style="font-size:1em;color:#888;margin-left:8px;">Rating</span>
+        </div>
+      </div>
       <div style="display:flex;gap:16px;justify-content:flex-end;margin-top:12px;">
         <button type="submit" name="add_company" style="background:#228b22;color:#fff;font-weight:700;font-size:1.1em;padding:8px 32px;border:none;border-radius:8px;">CONFIRM</button>
         <button type="button" id="cancel-add-company" style="background:#d00;color:#fff;font-weight:700;font-size:1.1em;padding:8px 32px;border:none;border-radius:8px;">CANCEL</button>
@@ -197,151 +185,39 @@ window.onload = function() {
     </form>
   </div>
 </div>
-<script>
-const searchInput = document.getElementById('search-input');
-const searchForm = document.getElementById('search-form');
-let debounceTimeout;
-searchInput.addEventListener('input', function() {
-    clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(() => {
-        // Use AJAX to fetch and update the sidebar without full page reload
-        const params = new URLSearchParams(new FormData(searchForm));
-        fetch('index.php?ajax=1&' + params.toString())
-            .then(res => res.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const newSidebar = doc.querySelector('.sidebar');
-                if (newSidebar) {
-                    document.querySelector('.sidebar').innerHTML = newSidebar.innerHTML;
-                }
-            });
-    }, 300);
-});
+<div id="toast"></div>
+<div id="loading" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0003;z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:24px 32px;border-radius:12px;font-size:1.3em;color:#228b22;">Loading...</div>
+</div>
 
-// Privilege dropdown logic
-const privBtn = document.getElementById('priv-eye-btn');
-const privDropdown = document.getElementById('priv-dropdown');
-let currentPriv = localStorage.getItem('privilege') || 'view';
-function updatePrivIcon() {
-    if (currentPriv === 'admin') {
-        privBtn.innerHTML = '<i class="fa fa-user-tie"></i>';
-    } else {
-        privBtn.innerHTML = '<i class="fa fa-eye"></i>';
-    }
-}
-updatePrivIcon();
-privBtn.onclick = function(e) {
-    e.stopPropagation();
-    privDropdown.style.display = privDropdown.style.display === 'block' ? 'none' : 'block';
-};
-document.addEventListener('click', function(e) {
-    if (!privDropdown.contains(e.target) && e.target !== privBtn) {
-        privDropdown.style.display = 'none';
-    }
-});
+<!-- Admin Login Modal -->
+<div id="admin-login-modal" style="display:none;position:fixed;z-index:10000;left:0;top:0;width:100vw;height:100vh;background:#0006;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:32px 32px 24px 32px;border-radius:16px;min-width:320px;max-width:95vw;box-shadow:0 4px 32px #0003;display:flex;flex-direction:column;gap:16px;position:relative;">
+    <h2 style="margin:0 0 8px 0;font-size:1.3em;color:#228b22;text-align:center;">Admin Login</h2>
+    <form id="admin-login-form" autocomplete="off" style="display:flex;flex-direction:column;gap:12px;">
+      <input type="text" name="username" id="admin-username" placeholder="Username" required style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ccc;font-size:1.1em;">
+      <div style="position:relative;width:100%;">
+        <input type="password" name="password" id="admin-password" placeholder="Password" required style="width:100%;padding:10px 12px 10px 12px;border-radius:8px;border:1px solid #ccc;font-size:1.1em;">
+        <button type="button" id="toggle-admin-password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1em;color:#888;padding:0 4px;">
+          <i class="fa fa-eye"></i>
+        </button>
+      </div>
+      <div id="admin-login-error" style="color:#d00;font-size:1em;display:none;"></div>
+      <div style="display:flex;gap:16px;justify-content:flex-end;margin-top:8px;">
+        <button type="submit" style="background:#228b22;color:#fff;font-weight:700;font-size:1.1em;padding:8px 32px;border:none;border-radius:8px;">LOGIN</button>
+        <button type="button" id="cancel-admin-login" style="background:#d00;color:#fff;font-weight:700;font-size:1.1em;padding:8px 32px;border:none;border-radius:8px;">CANCEL</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-function updateAdminUI() {
-    const isAdmin = currentPriv === 'admin';
-    document.querySelectorAll('.delete-company-btn').forEach(btn => btn.style.display = isAdmin ? 'block' : 'none');
-    document.querySelectorAll('.delete-product-btn').forEach(btn => btn.style.display = isAdmin ? 'inline-block' : 'none');
-    document.querySelectorAll('.add-product-btn').forEach(btn => btn.style.display = isAdmin ? 'inline-block' : 'none');
-    // Always show visit-site-btn in both modes
-    document.querySelectorAll('.visit-site-btn').forEach(btn => btn.style.display = 'inline-block');
-    const addBtn = document.getElementById('add-company-btn');
-    if (addBtn) addBtn.style.display = isAdmin ? 'block' : 'none';
-    // Show/hide add product form
-    const addProductForm = document.getElementById('add-product-form');
-    if (addProductForm) addProductForm.style.display = isAdmin ? 'flex' : 'none';
-}
-updateAdminUI();
-
-// Modal logic
-const addBtn = document.getElementById('add-company-btn');
-const modal = document.getElementById('add-company-modal');
-const cancelBtn = document.getElementById('cancel-add-company');
-addBtn && addBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    modal.style.display = 'flex';
-});
-cancelBtn && cancelBtn.addEventListener('click', function() {
-    modal.style.display = 'none';
-});
-window.addEventListener('click', function(e) {
-    if (e.target === modal) modal.style.display = 'none';
-});
-
-function isAdmin() { return currentPriv === 'admin'; }
-
-function makeEditable() {
-    document.querySelectorAll('.editable-field').forEach(function(el) {
-        // Remove previous listeners to avoid stacking
-        el.replaceWith(el.cloneNode(true));
-    });
-    document.querySelectorAll('.editable-field').forEach(function(el) {
-        if (isAdmin()) {
-            el.setAttribute('tabindex', '0');
-            el.classList.add('admin-editable');
-            el.addEventListener('mouseenter', function() { el.classList.add('edit-hover'); });
-            el.addEventListener('mouseleave', function() { el.classList.remove('edit-hover'); });
-            el.onclick = function(e) {
-                if (!el.isContentEditable) {
-                    el.contentEditable = true;
-                    el.focus();
-                }
-            };
-            el.onblur = function() { saveEdit(el); };
-            el.onkeydown = function(e) {
-                if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
-            };
-        } else {
-            el.contentEditable = false;
-            el.removeAttribute('tabindex');
-            el.classList.remove('admin-editable');
-            el.classList.remove('edit-hover');
-            el.onclick = null;
-            el.onblur = null;
-            el.onkeydown = null;
-        }
-    });
-}
-function saveEdit(el) {
-    el.contentEditable = false;
-    el.classList.remove('edit-hover');
-    const field = el.getAttribute('data-field');
-    const value = el.innerText.trim();
-    let data = { field, value };
-    if (field === 'product') {
-        data.product_id = el.getAttribute('data-product-id');
-        data.company_id = <?= intval($show_id) ?>;
-        data.action = 'update_product';
-    } else {
-        data.company_id = <?= intval($show_id) ?>;
-        data.action = 'update_company';
-    }
-    fetch('process.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    }).then(res => res.json()).then(resp => {
-        if (!resp.success) alert(resp.error || 'Update failed');
-    });
-}
-function updateEditableOnPrivChange() { makeEditable(); }
-// Call on load and on privilege change
-makeEditable();
-
-// Update UI on privilege change
-function onPrivChange() { updatePrivIcon(); updateAdminUI(); updateEditableOnPrivChange(); }
-document.querySelectorAll('.priv-option').forEach(function(opt) {
-    opt.onclick = function() {
-        currentPriv = this.getAttribute('data-priv');
-        localStorage.setItem('privilege', currentPriv);
-        onPrivChange();
-        privDropdown.style.display = 'none';
-    };
-});
-</script>
 <?php if (isset($_GET['ajax'])) { exit; } ?>
+<script>
+    // After updating .main-panel.innerHTML
+    const newCompanyId = parseInt(document.querySelector('.main-panel .editable-field[data-field="name"]')?.getAttribute('data-company-id') || companyId);
+    if (!isNaN(newCompanyId)) {
+        window.COMPANY_ID = newCompanyId;
+    }
+</script>
 </body>
 </html>

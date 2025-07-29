@@ -151,7 +151,7 @@ if (isset($_POST['add_company'])) {
     $sector = '';
     $opening_hours = '';
     $status = 'active';
-    $review = '';
+    $review = trim($_POST['review'] ?? '0'); // <-- FIXED: get review from POST
     if ($name === '' || $email === '' || $contact_number === '' || $location === '') {
         header("Location: index.php?error=Missing required fields");
         exit;
@@ -185,6 +185,26 @@ if (isset($_POST['add_company'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'application/json') === 0) {
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input) { echo json_encode(['success'=>false,'error'=>'Invalid input']); exit; }
+    if ($input['action'] === 'admin_login') {
+        $username = trim($input['username'] ?? '');
+        $password = trim($input['password'] ?? '');
+        // Check against database (table: admins)
+        $stmt = $conn->prepare("SELECT password FROM admins WHERE username=? LIMIT 1");
+        $stmt->bind_param('s', $username);
+        $stmt->execute();
+        $stmt->store_result();
+        if ($stmt->num_rows > 0) {
+            $stmt->bind_result($dbpass);
+            $stmt->fetch();
+            if ($dbpass === $password) {
+                echo json_encode(['success'=>true]); exit;
+            } else {
+                echo json_encode(['success'=>false,'error'=>'Incorrect password']); exit;
+            }
+        } else {
+            echo json_encode(['success'=>false,'error'=>'Unknown username']); exit;
+        }
+    }
     if ($input['action'] === 'update_company') {
         $fields = ['name','location','contact_number','description','email'];
         $field = $input['field'];
@@ -208,20 +228,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
         if (!$stmt->execute()) { echo json_encode(['success'=>false,'error'=>'Update failed']); exit; }
         echo json_encode(['success'=>true]); exit;
     }
+    if ($input['action'] === 'update_company_rating') {
+        $company_id = intval($input['company_id'] ?? 0);
+        $review = intval($input['review'] ?? 0);
+        if ($company_id && $review >= 1 && $review <= 5) {
+            $stmt = $conn->prepare("UPDATE companies SET review=? WHERE id=?");
+            if (!$stmt) { echo json_encode(['success'=>false,'error'=>'DB error']); exit; }
+            $stmt->bind_param('ii', $review, $company_id);
+            if (!$stmt->execute()) { echo json_encode(['success'=>false,'error'=>'Update failed']); exit; }
+            echo json_encode(['success'=>true]); exit;
+        } else {
+            echo json_encode(['success'=>false,'error'=>'Invalid data']); exit;
+        }
+    }
     echo json_encode(['success'=>false,'error'=>'Unknown action']); exit;
 }
 
 header("Location: index.php");
 exit;
 
-// Suggestions & Recommendations:
-// 1. Always validate and sanitize user input to prevent SQL injection and XSS attacks.
-// 2. Use prepared statements (as you do) for all database queries.
-// 3. Add server-side validation for required fields (e.g., name, email).
-// 4. Add pagination if the company or product list grows large.
-// 6. Store product details (not just name) if needed (e.g., price, description).
-// 8. Log errors and handle exceptions for better debugging and reliability.
-// 10. Consider using a framework (like Laravel) for larger projects for better structure and security.
-// 11. Implement soft delete (archive) instead of permanent delete for better data recovery.
-// 12. Add search suggestions/autocomplete for company and product names (implement in UI).
-// 13. Integrate Google Maps for company locations (implement in UI).
+
