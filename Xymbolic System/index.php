@@ -10,6 +10,41 @@
         var COMPANY_ID = <?= intval($show_id) ?>;
     </script>
     <script src="main.js" defer></script>
+    <script>
+    // Move updated company card to top after AJAX update
+    function moveCompanyCardToTop(companyId) {
+        var sidebar = document.querySelector('.sidebar');
+        if (!sidebar) return;
+        var cards = Array.from(sidebar.querySelectorAll('.company-card'));
+        let updatedCard = null;
+        for (const card of cards) {
+            let id = null;
+            var idInput = card.querySelector('input[name="id"]');
+            if (idInput) {
+                id = parseInt(idInput.value);
+            } else {
+                var onclick = card.getAttribute('onclick');
+                if (onclick) {
+                    var match = onclick.match(/company_id=(\d+)/);
+                    if (match) id = parseInt(match[1]);
+                }
+            }
+            if (id === companyId) {
+                updatedCard = card;
+                break;
+            }
+        }
+        if (updatedCard) {
+            sidebar.insertBefore(updatedCard, sidebar.firstChild);
+        }
+    }
+    // Listen for custom event from main.js after update
+    document.addEventListener('company-updated', function(e) {
+        if (e.detail && e.detail.companyId) {
+            moveCompanyCardToTop(e.detail.companyId);
+        }
+    });
+    </script>
 </head>
 <body>
 <?php if (isset($_GET['error'])): ?>
@@ -24,7 +59,7 @@ window.onload = function() {
     <form id="search-form" method="GET" style="flex:1;display:flex;align-items:center;gap:8px;margin:0;">
         <input type="text" id="search-input" name="search" placeholder="Search for Company/Products" value="<?= htmlspecialchars($_GET['search'] ?? '') ?>" autocomplete="off">
     </form>
-    <button class="icon-btn"><i class="fa fa-sliders-h"></i></button>
+   
     <button id="add-company-btn" style="display:none;background:#228b22;color:#fff;font-weight:700;font-size:1.3em;padding:0 32px;height:44px;border:none;border-radius:10px;margin-left:12px;cursor:pointer;">ADD</button>
     <div class="dropdown-priv" style="position:relative;">
         <button class="icon-btn" id="priv-eye-btn" type="button"><i class="fa fa-eye"></i></button>
@@ -42,8 +77,8 @@ window.onload = function() {
         $where = "WHERE 1";
         if ($search) {
             $search = $conn->real_escape_string($search);
-            // Search companies by name, email, sector, OR if any of their products match the search
-            $where .= " AND (name LIKE '%$search%' OR email LIKE '%$search%' OR sector LIKE '%$search%' OR id IN (SELECT company_id FROM products WHERE name LIKE '%$search%'))";
+            // Search companies by name, email, sector, OR if any of their products or categories match the search
+            $where .= " AND (name LIKE '%$search%' OR email LIKE '%$search%' OR sector LIKE '%$search%' OR id IN (SELECT company_id FROM products WHERE name LIKE '%$search%' OR category LIKE '%$search%'))";
         }
         if ($sector) {
             $sector = $conn->real_escape_string($sector);
@@ -120,25 +155,143 @@ window.onload = function() {
         </div>
         <div class="products-section">
             <h3>List of Products</h3>
-            <ul class="product-list">
-            <?php
-            $products = $conn->query("SELECT * FROM products WHERE company_id=".intval($show_id));
-            while($p = $products->fetch_assoc()): ?>
-                <li style="display:flex;align-items:center;gap:8px;">
-                    <span class="editable-field" data-field="product" data-product-id="<?= $p['id'] ?>" contenteditable="false" style="flex:1;min-width:0;"><?= htmlspecialchars($p['name']) ?></span>
-                    <form action="process.php" method="POST" style="display:inline;">
-                        <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
-                        <input type="hidden" name="company_id" value="<?= $show_id ?>">
-                        <button type="submit" name="delete_product" class="delete-product-btn" style="display:none;background:none;border:none;color:#d00;font-size:1.2em;cursor:pointer;"><i class="fa fa-minus-circle"></i></button>
-                    </form>
-                </li>
-            <?php endwhile; ?>
-            </ul>
-            <form action="process.php" method="POST" id="add-product-form" style="margin-top:16px;display:flex;gap:8px;align-items:center;">
+            <div style="margin-bottom:12px;">
+                <input type="text" id="product-search-input" placeholder="Search products or category..." style="width:100%;padding:8px 14px;border-radius:8px;border:1px solid #aaa;font-size:1em;">
+            </div>
+            <form action="process.php" method="POST" id="add-product-form-<?= $show_id ?>" class="add-product-form" style="margin-bottom:16px;display:flex;gap:8px;align-items:center;">
                 <input type="hidden" name="company_id" value="<?= $show_id ?>">
                 <input type="text" name="product_name" placeholder="Product Name" style="flex:1;min-width:0;border-radius:16px;padding:6px 14px;border:1px solid #aaa;">
-                <button type="submit" name="add_product" class="add-product-btn" style="display:none;background:#2ca542;color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:1.5em;cursor:pointer;"><i class="fa fa-plus"></i></button>
+                <select name="product_category" class="product-category-select" data-company="<?= $show_id ?>" style="border-radius:16px;padding:6px 14px;border:1px solid #aaa;">
+                    <option value="">Select Category</option>
+                    <?php
+                    // Fetch distinct categories for dropdown
+                    $catRes = $conn->query("SELECT DISTINCT category FROM products WHERE category != '' AND company_id=".intval($show_id)." ORDER BY category ASC");
+                    while ($cat = $catRes->fetch_assoc()):
+                        $catName = htmlspecialchars($cat['category']);
+                        if ($catName) echo "<option value=\"$catName\">$catName</option>";
+                    endwhile;
+                    ?>
+                    <option value="_custom">Custom...</option>
+                </select>
+                <input type="text" name="custom_category" class="custom-category-input" data-company="<?= $show_id ?>" placeholder="Custom Category" style="display:none;flex:1;min-width:0;border-radius:16px;padding:6px 14px;border:1px solid #aaa;">
+                <button type="submit" name="add_product" class="add-product-btn" style="background:#2ca542;color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:1.5em;cursor:pointer;"><i class="fa fa-plus"></i></button>
             </form>
+            <?php
+            // Fetch and group products by category, sorted A-Z
+            $products = $conn->query("SELECT * FROM products WHERE company_id=".intval($show_id)." ORDER BY category ASC, name ASC");
+            $grouped = [];
+            while($p = $products->fetch_assoc()) {
+                $cat = $p['category'] ?: 'Uncategorized';
+                $grouped[$cat][] = $p;
+            }
+            ksort($grouped, SORT_NATURAL | SORT_FLAG_CASE);
+            foreach ($grouped as $cat => $plist):
+            ?>
+                <h4 class="product-category-header" style="margin:16px 0 4px 0;"><?= htmlspecialchars($cat) ?></h4>
+                <ul class="product-list">
+                <?php foreach ($plist as $p): ?>
+                    <li class="product-list-item" data-product-name="<?= htmlspecialchars(strtolower($p['name'])) ?>" data-product-category="<?= htmlspecialchars(strtolower($cat)) ?>" style="display:flex;align-items:center;gap:8px;">
+                        <span class="editable-field" data-field="product" data-product-id="<?= $p['id'] ?>" contenteditable="false" style="flex:1;min-width:0;"><?= htmlspecialchars($p['name']) ?></span>
+                        <form action="process.php" method="POST" style="display:inline;">
+                            <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
+                            <input type="hidden" name="company_id" value="<?= $show_id ?>">
+                            <button type="submit" name="delete_product" class="delete-product-btn" style="display:none;background:none;border:none;color:#d00;font-size:1.2em;cursor:pointer;"><i class="fa fa-minus-circle"></i></button>
+                        </form>
+                    </li>
+                <?php endforeach; ?>
+                </ul>
+            <?php endforeach; ?>
+            <script>
+            // Privilege mode toggle for add product form
+            function setProductFormVisibility(isAdmin) {
+                document.querySelectorAll('.add-product-form').forEach(function(form) {
+                    form.style.display = isAdmin ? 'flex' : 'none';
+                });
+            }
+            // Set add product form visibility on page load and after sidebar reload
+            function updateProductFormVisibilityByPrivilege() {
+                var priv = localStorage.getItem('privilege') || 'view';
+                setProductFormVisibility(priv === 'admin');
+            }
+            // Initial state
+            updateProductFormVisibilityByPrivilege();
+
+            // Product search bar logic (client-side filter)
+            document.addEventListener('input', function(e) {
+                if (e.target && e.target.id === 'product-search-input') {
+                    const val = e.target.value.trim().toLowerCase();
+                    const items = document.querySelectorAll('.product-list-item');
+                    let anyVisible = false;
+                    items.forEach(function(item) {
+                        const name = item.getAttribute('data-product-name') || '';
+                        const cat = item.getAttribute('data-product-category') || '';
+                        if (val === '' || name.includes(val) || cat.includes(val)) {
+                            item.style.display = 'flex';
+                            anyVisible = true;
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                    // Hide category headers if all products in that category are hidden
+                    document.querySelectorAll('.product-category-header').forEach(function(header) {
+                        const nextUl = header.nextElementSibling;
+                        if (!nextUl) return;
+                        const visible = Array.from(nextUl.querySelectorAll('.product-list-item')).some(li => li.style.display !== 'none');
+                        header.style.display = visible ? '' : 'none';
+                    });
+                }
+            });
+            // Make custom category work for all companies (robust for dynamic content)
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('product-category-select')) {
+                    var companyId = e.target.getAttribute('data-company');
+                    var customInput = document.querySelector('.custom-category-input[data-company="' + companyId + '"]');
+                    if (e.target.value === '_custom') {
+                        if (customInput) customInput.style.display = 'block';
+                    } else {
+                        if (customInput) {
+                            customInput.style.display = 'none';
+                            customInput.value = '';
+                        }
+                    }
+                }
+            });
+            // Listen for privilege switch and toggle add product form
+            document.addEventListener('DOMContentLoaded', function() {
+                var privEyeBtn = document.getElementById('priv-eye-btn');
+                var privDropdown = document.getElementById('priv-dropdown');
+                if (privEyeBtn && privDropdown) {
+                    privDropdown.querySelectorAll('.priv-option').forEach(function(opt) {
+                        opt.addEventListener('click', function() {
+                            var priv = this.getAttribute('data-priv');
+                            localStorage.setItem('privilege', priv);
+                            setProductFormVisibility(priv === 'admin');
+                        });
+                    });
+                }
+                // Hide add product form if admin modal cancel is clicked
+                var cancelAdminBtn = document.getElementById('cancel-admin-login');
+                if (cancelAdminBtn) {
+                    cancelAdminBtn.addEventListener('click', function() {
+                        // Always set privilege to view and hide add product form
+                        localStorage.setItem('privilege', 'view');
+                        setProductFormVisibility(false);
+                    });
+                }
+            });
+
+            // Ensure add product form stays hidden in view mode after sidebar reload
+            document.addEventListener('DOMContentLoaded', function() {
+                // Patch sidebar reload to call updateProductFormVisibilityByPrivilege
+                var observer = new MutationObserver(function() {
+                    updateProductFormVisibilityByPrivilege();
+                });
+                var sidebar = document.querySelector('.sidebar');
+                if (sidebar) {
+                    observer.observe(sidebar, { childList: true, subtree: true });
+                }
+            });
+            </script>
         </div>
         <?php else: ?>
         <div style="color:#888;">No company selected.</div>
@@ -146,41 +299,43 @@ window.onload = function() {
     </div>
 </div>
 <!-- Add Company Modal -->
-<div id="add-company-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:#0006;align-items:center;justify-content:center;">
-  <div style="background:#ddd;padding:24px 24px 16px 24px;border-radius:16px;min-width:340px;max-width:95vw;box-shadow:0 4px 32px #0003;display:flex;flex-direction:column;gap:12px;position:relative;">
-    <form id="add-company-form" action="process.php" method="POST" autocomplete="off" style="display:flex;flex-direction:column;gap:10px;">
-      <input type="text" name="name" placeholder="Company Name" required style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ccc;font-size:1.1em;background:#fff7f7;">
-      <input type="text" name="description" placeholder="Description" required style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ccc;font-size:1.1em;background:#fff7f7;">
-      <input type="text" name="location" placeholder="Location (e.g. City, Address, or Google Maps link)" required style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ccc;font-size:1.1em;background:#fff7f7;">
-      <div style="font-size:12px;color:#666;margin-bottom:2px;margin-top:-6px;">Tip: Enter a city, address, or paste a Google Maps link for best results.</div>
-      <div style="display:flex;gap:8px;align-items:flex-end;">
-        <div style="flex:1;display:flex;align-items:center;background:#fff7f7;border-radius:8px;border:1px solid #ccc;">
-          <span style="margin:0 8px 0 8px;"><i class="fa fa-envelope"></i></span>
-          <input type="email" name="email" placeholder="Email" required style="border:none;outline:none;background:transparent;font-size:1em;width:100%;padding:10px 0;">
+<div id="add-company-modal" class="modal-bg">
+  <div class="modal-box">
+    <form id="add-company-form" action="process.php" method="POST" autocomplete="off" class="modal-form">
+      <div class="modal-fields">
+        <input type="text" name="name" placeholder="Company Name" required class="modal-input">
+        <input type="text" name="description" placeholder="Description" required class="modal-input">
+        <input type="text" name="location" placeholder="Location (e.g. City, Address, or Google Maps link)" required class="modal-input">
+        <div class="modal-tip">Tip: Enter a city, address, or paste a Google Maps link for best results.</div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-input-group">
+          <span class="modal-icon"><i class="fa fa-envelope"></i></span>
+          <input type="email" name="email" placeholder="Email" required class="modal-input-inner">
         </div>
-        <div style="flex:1;display:flex;align-items:center;background:#fff7f7;border-radius:8px;border:1px solid #ccc;">
-          <span style="margin:0 8px 0 8px;"><i class="fa fa-phone"></i></span>
-          <input type="text" name="contact_number" placeholder="Phone" required style="border:none;outline:none;background:transparent;font-size:1em;width:100%;padding:10px 0;">
+        <div class="modal-input-group">
+          <span class="modal-icon"><i class="fa fa-phone"></i></span>
+          <input type="text" name="contact_number" placeholder="Phone" required class="modal-input-inner" inputmode="tel" pattern="[0-9()\-]*" oninput="this.value=this.value.replace(/[^0-9()\-]/g,'')">
         </div>
       </div>
-      <div style="display:flex;align-items:center;background:#fff7f7;border-radius:8px;border:1px solid #ccc;">
-        <span style="margin:0 8px 0 8px;"><i class="fa fa-link"></i></span>
-        <input type="url" name="url" placeholder="Website URL" style="border:none;outline:none;background:transparent;font-size:1em;width:100%;padding:10px 0;">
+      <div class="modal-input-group modal-url-group">
+        <span class="modal-icon"><i class="fa fa-link"></i></span>
+        <input type="url" name="url" placeholder="Website URL" class="modal-input-inner">
       </div>
-      <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:8px;">
-        <div id="star-rating" style="display:flex;gap:2px;align-items:center;">
+      <div class="modal-rating-row">
+        <div id="star-rating" class="modal-rating">
           <input type="hidden" name="review" id="review-rating" value="0">
-          <span class="star" data-value="1" style="font-size:1.7em;cursor:pointer;color:#ccc;"><i class="fa fa-star"></i></span>
-          <span class="star" data-value="2" style="font-size:1.7em;cursor:pointer;color:#ccc;"><i class="fa fa-star"></i></span>
-          <span class="star" data-value="3" style="font-size:1.7em;cursor:pointer;color:#ccc;"><i class="fa fa-star"></i></span>
-          <span class="star" data-value="4" style="font-size:1.7em;cursor:pointer;color:#ccc;"><i class="fa fa-star"></i></span>
-          <span class="star" data-value="5" style="font-size:1.7em;cursor:pointer;color:#ccc;"><i class="fa fa-star"></i></span>
-          <span style="font-size:1em;color:#888;margin-left:8px;">Rating</span>
+          <span class="star" data-value="1"><i class="fa fa-star"></i></span>
+          <span class="star" data-value="2"><i class="fa fa-star"></i></span>
+          <span class="star" data-value="3"><i class="fa fa-star"></i></span>
+          <span class="star" data-value="4"><i class="fa fa-star"></i></span>
+          <span class="star" data-value="5"><i class="fa fa-star"></i></span>
+          <span class="modal-rating-label">Rating</span>
         </div>
       </div>
-      <div style="display:flex;gap:16px;justify-content:flex-end;margin-top:12px;">
-        <button type="submit" name="add_company" style="background:#228b22;color:#fff;font-weight:700;font-size:1.1em;padding:8px 32px;border:none;border-radius:8px;">CONFIRM</button>
-        <button type="button" id="cancel-add-company" style="background:#d00;color:#fff;font-weight:700;font-size:1.1em;padding:8px 32px;border:none;border-radius:8px;">CANCEL</button>
+      <div class="modal-btn-row">
+        <button type="submit" name="add_company" class="modal-btn modal-btn-confirm">CONFIRM</button>
+        <button type="button" id="cancel-add-company" class="modal-btn modal-btn-cancel">CANCEL</button>
       </div>
     </form>
   </div>
@@ -191,21 +346,19 @@ window.onload = function() {
 </div>
 
 <!-- Admin Login Modal -->
-<div id="admin-login-modal" style="display:none;position:fixed;z-index:10000;left:0;top:0;width:100vw;height:100vh;background:#0006;align-items:center;justify-content:center;">
-  <div style="background:#fff;padding:32px 32px 24px 32px;border-radius:16px;min-width:320px;max-width:95vw;box-shadow:0 4px 32px #0003;display:flex;flex-direction:column;gap:16px;position:relative;">
-    <h2 style="margin:0 0 8px 0;font-size:1.3em;color:#228b22;text-align:center;">Admin Login</h2>
-    <form id="admin-login-form" autocomplete="off" style="display:flex;flex-direction:column;gap:12px;">
-      <input type="text" name="username" id="admin-username" placeholder="Username" required style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #ccc;font-size:1.1em;">
-      <div style="position:relative;width:100%;">
-        <input type="password" name="password" id="admin-password" placeholder="Password" required style="width:100%;padding:10px 12px 10px 12px;border-radius:8px;border:1px solid #ccc;font-size:1.1em;">
-        <button type="button" id="toggle-admin-password" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1em;color:#888;padding:0 4px;">
-          <i class="fa fa-eye"></i>
-        </button>
+<div id="admin-login-modal" class="modal-bg">
+  <div class="modal-box modal-login-box">
+    <h2 class="modal-login-title">Admin Login</h2>
+    <form id="admin-login-form" autocomplete="off" class="modal-form modal-login-form">
+      <input type="text" name="username" id="admin-username" placeholder="Username" required class="modal-input">
+      <div class="modal-password-group">
+        <input type="password" name="password" id="admin-password" placeholder="Password" required class="modal-input">
+        <button type="button" id="toggle-admin-password" class="modal-password-toggle" tabindex="-1"><i class="fa fa-eye"></i></button>
       </div>
-      <div id="admin-login-error" style="color:#d00;font-size:1em;display:none;"></div>
-      <div style="display:flex;gap:16px;justify-content:flex-end;margin-top:8px;">
-        <button type="submit" style="background:#228b22;color:#fff;font-weight:700;font-size:1.1em;padding:8px 32px;border:none;border-radius:8px;">LOGIN</button>
-        <button type="button" id="cancel-admin-login" style="background:#d00;color:#fff;font-weight:700;font-size:1.1em;padding:8px 32px;border:none;border-radius:8px;">CANCEL</button>
+      <div id="admin-login-error" class="modal-login-error" style="display:none;"></div>
+      <div class="modal-btn-row">
+        <button type="submit" class="modal-btn modal-btn-confirm">LOGIN</button>
+        <button type="button" id="cancel-admin-login" class="modal-btn modal-btn-cancel">CANCEL</button>
       </div>
     </form>
   </div>
@@ -213,11 +366,74 @@ window.onload = function() {
 
 <?php if (isset($_GET['ajax'])) { exit; } ?>
 <script>
+    // Password show/hide toggle for admin login
+    document.addEventListener('DOMContentLoaded', function() {
+        var toggleBtn = document.getElementById('toggle-admin-password');
+        var pwdInput = document.getElementById('admin-password');
+        if (toggleBtn && pwdInput) {
+            toggleBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (pwdInput.type === 'password') {
+                    pwdInput.type = 'text';
+                    toggleBtn.innerHTML = '<i class="fa fa-eye-slash"></i>';
+                } else {
+                    pwdInput.type = 'password';
+                    toggleBtn.innerHTML = '<i class="fa fa-eye"></i>';
+                }
+            });
+        }
+    });
     // After updating .main-panel.innerHTML
     const newCompanyId = parseInt(document.querySelector('.main-panel .editable-field[data-field="name"]')?.getAttribute('data-company-id') || companyId);
     if (!isNaN(newCompanyId)) {
         window.COMPANY_ID = newCompanyId;
     }
+
+    // Toast modal function
+    function showToast(message, duration = 2000) {
+        var toast = document.getElementById('toast');
+        if (!toast) return;
+        toast.textContent = message;
+        toast.style.display = 'block';
+        toast.style.position = 'fixed';
+        toast.style.top = '30px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.background = '#228b22';
+        toast.style.color = '#fff';
+        toast.style.padding = '16px 32px';
+        toast.style.borderRadius = '10px';
+        toast.style.fontSize = '1.2em';
+        toast.style.zIndex = 9999;
+        toast.style.boxShadow = '0 2px 12px #0003';
+        setTimeout(function() {
+            toast.style.display = 'none';
+        }, duration);
+    }
+
+    // AJAX Add Company
+    document.getElementById('add-company-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var form = this;
+        var formData = new FormData(form);
+        formData.append('add_company', '1');
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'process.php', true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    // Hide modal, show toast, reload sidebar/main-panel
+                    document.getElementById('add-company-modal').style.display = 'none';
+                    showToast('Company Added Successfully');
+                    // Optionally reload page or update sidebar/main-panel via AJAX
+                    setTimeout(function() { location.reload(); }, 1200);
+                } else {
+                    showToast('Error adding company', 2500);
+                }
+            }
+        };
+        xhr.send(formData);
+    });
 </script>
 </body>
 </html>

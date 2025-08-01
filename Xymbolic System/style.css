@@ -1,3 +1,222 @@
+.modal-login-form .modal-input[type="text"],
+.modal-login-form .modal-input[type="password"] {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid #bbb;
+    font-size: 1.13em;
+    background: #f9f9f9;
+    margin-bottom: 0;
+    box-sizing: border-box;
+}
+/* Modal Admin Login Styles */
+.modal-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-bottom: 8px;
+}
+.modal-input {
+    width: 100%;
+    padding: 16px 18px;
+    border-radius: 8px;
+    border: 1px solid #bbb;
+    font-size: 1.13em;
+    background: #f9f9f9;
+    margin-bottom: 0;
+    box-sizing: border-box;
+}
+.modal-btn-row {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    margin-top: 18px;
+}
+.modal-rating-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 8px;
+    margin-bottom: 0;
+    padding-right: 38px;
+}
+.modal-password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1em;
+    color: #888;
+    padding: 0 4px;
+    z-index: 2;
+}
+.modal-login-error {
+    color: #d00;
+    font-size: 1em;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+/* Modal Add Company Styles */
+.modal-bg {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #0006;
+    align-items: center;
+    justify-content: center;
+}
+.modal-bg[style*="display:block"], .modal-bg[style*="display: flex"] {
+    display: flex !important;
+}
+.modal-box {
+    background: #fff;
+    padding: 32px 32px 24px 32px;
+    border-radius: 18px;
+    min-width: 350px;
+    max-width: 95vw;
+    box-shadow: 0 6px 32px #0003;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+}
+.modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.modal-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.modal-input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid #bbb;
+    font-size: 1.13em;
+    background: #f9f9f9;
+}
+.modal-tip {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 2px;
+    margin-top: -4px;
+}
+.modal-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+.modal-input-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #bbb;
+    padding: 0 8px;
+}
+.modal-icon {
+    margin-right: 8px;
+    color: #888;
+    font-size: 1.1em;
+}
+.modal-input-inner {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 1em;
+    width: 100%;
+    padding: 12px 0;
+}
+.modal-password-group {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #bbb;
+    margin-bottom: 0;
+    box-sizing: border-box;
+}
+.modal-password-group .modal-input {
+    width: 100%;
+    padding: 16px 38px 16px 18px;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 1.13em;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+.modal-password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.3em;
+    color: #888;
+    padding: 0 4px;
+    z-index: 2;
+}
+.modal-rating-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+.modal-rating {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+.modal-rating .star {
+    font-size: 1.5em;
+    cursor: pointer;
+    color: #ccc;
+}
+.modal-rating-label {
+    font-size: 1em;
+    color: #888;
+    margin-left: 10px;
+}
+.modal-btn-row {
+    display: flex;
+    gap: 18px;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+.modal-btn {
+    font-weight: 700;
+    font-size: 1.1em;
+    padding: 10px 36px;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #0001;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.modal-btn-confirm {
+    background: #228b22;
+    color: #fff;
+}
+.modal-btn-cancel {
+    background: #d00;
+    color: #fff;
+}
 body {
     font-family: Arial, sans-serif;
     background: #f0f2f5;

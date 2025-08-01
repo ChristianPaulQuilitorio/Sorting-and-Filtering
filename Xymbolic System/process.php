@@ -114,13 +114,17 @@ if (isset($_POST['add_product']) && !empty($_POST['product_name'])) {
     }
     $price = $_POST['product_price'] ?? null;
     $desc = $_POST['product_description'] ?? null;
-    $stmt = $conn->prepare("INSERT INTO products (company_id, name, price, description) VALUES (?, ?, ?, ?)");
+    $category = $_POST['product_category'] ?? '';
+    if ($category === '_custom') {
+        $category = trim($_POST['custom_category'] ?? '');
+    }
+    $stmt = $conn->prepare("INSERT INTO products (company_id, name, price, description, category) VALUES (?, ?, ?, ?, ?)");
     if (!$stmt) {
         log_error("Prepare failed: " . $conn->error);
         header("Location: index.php?error=DB error");
         exit;
     }
-    $stmt->bind_param("isds", $_POST['company_id'], $_POST['product_name'], $price, $desc);
+    $stmt->bind_param("isdss", $_POST['company_id'], $_POST['product_name'], $price, $desc, $category);
     if (!$stmt->execute()) {
         log_error("Execute failed: " . $stmt->error);
     }
@@ -188,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
     if ($input['action'] === 'admin_login') {
         $username = trim($input['username'] ?? '');
         $password = trim($input['password'] ?? '');
-        // Check against database (table: admins)
+        // DEMO ONLY: Compare password directly (no hashing)
         $stmt = $conn->prepare("SELECT password FROM admins WHERE username=? LIMIT 1");
         $stmt->bind_param('s', $username);
         $stmt->execute();
@@ -196,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
         if ($stmt->num_rows > 0) {
             $stmt->bind_result($dbpass);
             $stmt->fetch();
-            if ($dbpass === $password) {
+            if ($password === $dbpass) {
                 echo json_encode(['success'=>true]); exit;
             } else {
                 echo json_encode(['success'=>false,'error'=>'Incorrect password']); exit;
@@ -204,6 +208,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
         } else {
             echo json_encode(['success'=>false,'error'=>'Unknown username']); exit;
         }
+    }
+    // Handle admin registration or password update
+    if (isset($_POST['register_admin'])) {
+        $username = $conn->real_escape_string($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $conn->query("INSERT INTO admins (username, password) VALUES ('$username', '$hash')");
+        // ...redirect or response...
+        exit;
     }
     if ($input['action'] === 'update_company') {
         $fields = ['name','location','contact_number','description','email'];

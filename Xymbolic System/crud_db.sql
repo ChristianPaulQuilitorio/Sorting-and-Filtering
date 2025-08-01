@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 29, 2025 at 03:59 PM
+-- Generation Time: Jul 31, 2025 at 09:11 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -38,7 +38,7 @@ CREATE TABLE `admins` (
 --
 
 INSERT INTO `admins` (`id`, `username`, `password`) VALUES
-(1, 'Boss Jake', 'admin123');
+(1, 'admin', 'admin123');
 
 -- --------------------------------------------------------
 
@@ -66,12 +66,12 @@ CREATE TABLE `companies` (
 
 INSERT INTO `companies` (`id`, `name`, `description`, `sector`, `location`, `contact_number`, `email`, `url`, `opening_hours`, `status`, `review`) VALUES
 (7, 'Xymbolic', 'I.T Solutions for your every needs. :)))', '', 'Building 1056 Rizal Highway Subic Bay Freeport Zone, Olongapo City, 2200 Zambales', '+63 (47) 222.8707', 'inquiry@xymbolic.com.ph', 'https://www.xymbolic.com.ph/', '', 'active', '4'),
-(8, 'Allied Care Experts (ACE) Medical Center - Baypointe, Inc.', 'Hospital', '', 'Block 8, Lot 1A and 1B Dewey Avenue Subic Bay Freeport Zone, Olongapo City, 2222 Zambales', '(047) 250-6070', 'mis@unihealthbaypointe.com', 'https://www.acebaypointe.com/index.php', '', 'active', ''),
 (9, 'Wistron InfoComm Philippines Corporation', 'Appliances, Electrical, and Electronics Manufacturing', '', 'R7GV+MV5, Olongapo City, 2200 Zambales', '886-2-6616-999', 'enterpriseBG@wistron.com', 'https://www.wistron.com/en', '', 'active', ''),
 (10, 'Subic Bay Travelers Hotel', 'Bembangan for the rich', '', 'R7CM+42H, Corner Aguinaldo and Raymundo Street Freeport Zone Subic (Olongapo), Subic Bay Freeport Zone', '0999 995 5238', 'hotelinquiry@subicbaytravelershotel.com', 'https://www.subicbaytravelershotel.com/', '', 'active', '5'),
-(11, 'Gordon College', 'College ng mga KUPAL', '', 'Olongapo City Sports Complex, Gordon College,Philippine, Olongapo City, Zambales', '098989898', 'reynaldo.bautista@gordoncollege.edu.ph', 'https://gordoncollege.edu.ph/w3/', '', 'active', '3'),
-(12, 'McDonald\'s - Subic Bay Gateway', 'fast food restau', '', 'Argonaut Highway Gateway District corner Rizal Highway Subic Bay Freeport Zone, Olongapo City, 2200 Zambales', '639985515040', 'jb0912@jollibee.com.ph', 'https://order.jollibee.com/en/ph', '', 'active', '3'),
-(13, 'McDonald\'s - Subic Bay Gateway', 'hotel, services and clinic', '', 'Argonaut Highway Gateway District corner Rizal Highway Subic Bay Freeport Zone, Olongapo City, 2200 Zambales', '(02) 8888 6236', 'mcdo2025@yahoo.com', 'https://www.mcdelivery.com.ph/account/location/', '', 'active', '5');
+(11, 'Gordon College', 'College ng mga matatalino', '', 'Olongapo City Sports Complex, Gordon College,Philippine, Olongapo City, Zambales', '098989898', 'reynaldo.bautista@gordoncollege.edu.ph', 'https://gordoncollege.edu.ph/w3/', '', 'active', '5'),
+(32, 'SubicWorx', 'Subic Works', '', 'Building 1056, Rizal Highway, Subic Bay Freeport Zone, Olongapo, Philippines, 2222', '0472513680', 'inquiry@subicworx.com', 'https://www.facebook.com/subicworxinc/', '', 'active', '4'),
+(33, 'Kusinerong Kalbo', 'GC Hot pagkain', '', 'Gordon College', '09090909', 'kusinerongkalbo@gmail.com', 'https://www.facebook.com/KusinerongKalbooo/', '', 'active', '5'),
+(39, 'IONTECH inc.', 'We represent prominent technology brands as their exclusive or authorized distributor in the Philippines. This strategic alliance enables the company to be at the forefront of digital convergence of consumer electronics, telecoms and IT products.', '', 'Suite 1104 11th Floor, Taipan Place, F. Ortigas Jr. Rd, Pasig, 1605 Metro Manila', '(02)87362482', 'iontech@gmail.com', 'https://iontech.com.ph/', '', 'active', '4');
 
 -- --------------------------------------------------------
 
@@ -85,6 +85,7 @@ CREATE TABLE `products` (
   `name` varchar(255) DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
   `description` text DEFAULT NULL,
+  `category` varchar(100) DEFAULT NULL,
   `status` varchar(20) DEFAULT 'active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -92,34 +93,25 @@ CREATE TABLE `products` (
 -- Dumping data for table `products`
 --
 
-INSERT INTO `products` (`id`, `company_id`, `name`, `price`, `description`, `status`) VALUES
-(11, 8, 'Laman Loob', NULL, NULL, 'active'),
-(12, 8, 'Betamax', NULL, NULL, 'active'),
-(13, 8, 'Menudo(utak ng tao)', NULL, NULL, 'active'),
-(14, 9, 'TAGA ayos ng ref', NULL, NULL, 'active'),
-(15, 9, 'Microwave fixer', NULL, NULL, 'active'),
-(16, 10, 'Babae', NULL, NULL, 'active'),
-(17, 10, 'Lalake', NULL, NULL, 'active'),
-(18, 10, 'Bakla', NULL, NULL, 'active'),
-(19, 10, 'Tomboy', NULL, NULL, 'active'),
-(20, 11, 'KUPAL NA COORDINATOR', NULL, NULL, 'active'),
-(21, 11, 'MGA BOBONG STUDYANTE', NULL, NULL, 'active'),
-(22, 11, 'Lumpiaada', NULL, NULL, 'active'),
-(23, 11, 'NIGGA', NULL, NULL, 'active'),
-(24, 11, 'tarantadong professor', NULL, NULL, 'active'),
-(28, 12, 'Jolly Spaghetti w/ Fries & Drink', NULL, NULL, 'active'),
-(30, 11, 'burger na basa', NULL, NULL, 'active'),
-(31, 11, '1-pc. Chickenjoy w/ Drink', NULL, NULL, 'active'),
-(36, 13, 'McCafe Caramel Macchiatos', NULL, NULL, 'active'),
-(53, 12, 'Hotdog ', NULL, NULL, 'active'),
-(65, 13, 'ASDSADSA', NULL, NULL, 'active'),
-(70, 12, 'asdasdsa', NULL, NULL, 'active'),
-(71, 13, 'asdasdasdsa', NULL, NULL, 'active'),
-(72, 13, 'asdasdsa', NULL, NULL, 'active'),
-(73, 13, 'asd', NULL, NULL, 'active'),
-(77, 7, 'CANON L4010', NULL, NULL, 'active'),
-(79, 11, 'asdsa', NULL, NULL, 'active'),
-(80, 7, 'asdsadas', NULL, NULL, 'active');
+INSERT INTO `products` (`id`, `company_id`, `name`, `price`, `description`, `category`, `status`) VALUES
+(102, 7, 'Asus', NULL, NULL, 'Laptop', 'active'),
+(103, 7, 'Acer', NULL, NULL, 'Laptop', 'active'),
+(146, 7, 'Epson', NULL, NULL, 'Printer', 'active'),
+(147, 7, 'HyperX', NULL, NULL, 'Ram', 'active'),
+(148, 7, 'b', NULL, NULL, 'A', 'active'),
+(149, 7, 'B', NULL, NULL, 'B', 'active'),
+(150, 7, 'Z', NULL, NULL, 'Z', 'active'),
+(153, 7, 'a', NULL, NULL, 'A', 'active'),
+(155, 7, 'z', NULL, NULL, 'A', 'active'),
+(156, 7, 'C', NULL, NULL, 'A', 'active'),
+(157, 33, 'Pares Overload', NULL, NULL, 'Pares Combo', 'active'),
+(158, 33, 'Chicharong kahoy /w unli rice', NULL, NULL, 'Pares Combo', 'active'),
+(160, 33, 'Kilaw na gummy bears w/ sabaw ice tea', NULL, NULL, 'Pares Combo', 'active'),
+(170, 39, 'Lenovo ThinkPad Series', NULL, NULL, 'LENOVO', 'active'),
+(171, 39, 'Lenovo Yoga Series', NULL, NULL, 'LENOVO', 'active'),
+(172, 39, 'Lenovo Ideapad 100s', NULL, NULL, 'LENOVO', 'active'),
+(173, 39, 'Asus TUF Gaming F15', NULL, NULL, 'ASUS', 'active'),
+(174, 39, 'ASUS ROG (Republic of Gamers) Series', NULL, NULL, 'ASUS', 'active');
 
 -- --------------------------------------------------------
 
@@ -177,13 +169,13 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `companies`
 --
 ALTER TABLE `companies`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=81;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=175;
 
 --
 -- AUTO_INCREMENT for table `users`
